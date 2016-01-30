@@ -1,5 +1,6 @@
 package com.kbhulani.todoapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -11,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.apache.commons.io.FileUtils;
 
@@ -27,12 +29,15 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> todoItems;
     ArrayAdapter<String> todoItemsAdapter;
 
+    public final int REQUEST_CODE_EDIT = 100;
+    public static final String TODO_ITEM_KEY = "todoItem";
+    public static final String TODO_ITEM_KEY_INDEX = "index";
+    public static final String TODO_FILE = "todo.txt";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
         btnAddItem = (Button) findViewById(R.id.btnAddItem);
         etEditText = (EditText) findViewById(R.id.etEditText);
@@ -43,26 +48,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds todoItems to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // REQUEST_CODE is defined above
+        if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_EDIT) {
+            String todoItem = data.getStringExtra(TODO_ITEM_KEY);
+            int todoItemIndex = data.getIntExtra(TODO_ITEM_KEY_INDEX, -1);
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+            if (todoItemIndex >= 0) {
+                todoItems.set(todoItemIndex, todoItem);
+                todoItemsAdapter.notifyDataSetChanged();
+                writeItems();
+            }
         }
 
-        return super.onOptionsItemSelected(item);
+        lvItems.setClickable(true);
     }
+
 
     private void setupTodoList() {
         readItems();
@@ -80,17 +81,33 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+        lvItems.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent anIntent = new Intent(MainActivity.this, EditItemActivity.class);
+                anIntent.putExtra(TODO_ITEM_KEY_INDEX, position);
+                anIntent.putExtra(TODO_ITEM_KEY, todoItems.get(position));
+                startActivityForResult(anIntent, REQUEST_CODE_EDIT);
+            }
+        });
     }
 
     public void onAddItem(View view) {
-        todoItemsAdapter.add(etEditText.getText().toString());
-        etEditText.setText("");
-        writeItems();
+        String todoItem = etEditText.getText().toString();
+        if (todoItem.length() > 0) {
+            todoItemsAdapter.add(todoItem);
+            etEditText.setText("");
+            writeItems();
+        }
+        else {
+            Toast.makeText(this, R.string.errorSave, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void readItems() {
         File filesDir = getFilesDir();
-        File todoFile = new File(filesDir, "todo.txt");
+        File todoFile = new File(filesDir, TODO_FILE);
         try {
             todoItems = new ArrayList<String>(FileUtils.readLines(todoFile));
         } catch (IOException e) {
@@ -100,12 +117,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void writeItems() {
         File filesDir = getFilesDir();
-        File todoFile = new File(filesDir, "todo.txt");
+        File todoFile = new File(filesDir, TODO_FILE);
         try {
             FileUtils.writeLines(todoFile, todoItems);
-        } catch (IOException e) {
+            Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show();
 
+        } catch (IOException e) {
+            Toast.makeText(this, e.getMessage().toString(), Toast.LENGTH_SHORT).show();
         }
     }
+
 
 }
