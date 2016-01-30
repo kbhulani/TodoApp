@@ -39,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         btnAddItem = (Button) findViewById(R.id.btnAddItem);
         etEditText = (EditText) findViewById(R.id.etEditText);
         lvItems = (ListView) findViewById(R.id.lvItems);
@@ -60,8 +63,6 @@ public class MainActivity extends AppCompatActivity {
                 writeItems();
             }
         }
-
-        lvItems.setClickable(true);
     }
 
 
